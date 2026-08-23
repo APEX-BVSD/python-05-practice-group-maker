@@ -53,7 +53,7 @@ Inputs
 5
 
 Output
-ERROR: The number of people must be 1 or more.
+ERROR: The number of people must be 2 or more.
 ```
 
 ```
