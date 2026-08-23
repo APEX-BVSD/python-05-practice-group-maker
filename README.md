@@ -7,13 +7,13 @@ how many groups of that size can be made, and how many people are left over.
 2. The size of the groups
 
 ## Error Checking
-Your program should check that the number of people and group size are 1 or more.
+Your program should check that the number of people is 2 or more and that the group size is 1 or more.
 
-If the number of people are 0 or less, output the following message: "ERROR: The number of people must be 1 or more."
+If the number of people are 0 or less, output the following message: "ERROR: The number of people must be 2 or more."
 
 If the group size is 0 or less, output the following message: "ERROR: The group size must be 1 or more."
 
-**Only output one error message. If both the number of people and the group size are less than 0, then just output the people message.**
+**Only output one error message. If both the number of people and the group size are invalid, then just output the people message.**
 
 ## Output
 This exact string "With _ people, you can make _ (group/groups) of _ with _ (person/people) leftover." Choose groups/group and person/people depending on the number.
