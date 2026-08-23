@@ -106,8 +106,8 @@ jobs:
                     print(f"Test {number}: {label}")
                     print(result_text)
                     print(f"Inputs: [{shown_inputs}]")
-                    print(f"Expected: {expected}")
-                    print(f"  Actual: {actual}")
+                    print(f"Expected: '{expected}'")
+                    print(f"  Actual: '{actual}'")
                     print(horiz_line)
 
                 def main():
