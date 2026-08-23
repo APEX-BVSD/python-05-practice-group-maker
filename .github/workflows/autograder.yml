@@ -57,7 +57,7 @@ jobs:
                     - number: 8
                       label: Negative number of people
                       inputs: [-5, 2]
-                      expected: "ERROR: The number of people must be 1 or more."
+                      expected: "ERROR: The number of people must be 2 or more."
 
                     - number: 9
                       label: 0 group size
@@ -67,7 +67,7 @@ jobs:
                     - number: 10
                       label: Invalid number of people and group size
                       inputs: [-5, -2]
-                      expected: "ERROR: The number of people must be 1 or more."
+                      expected: "ERROR: The number of people must be 2 or more."
 
         steps:
             - uses: actions/checkout@v6
