@@ -3,7 +3,6 @@ Describe your program
 First Last - Month Year
 """
 
-
 def main() -> None:
     pass
 
