@@ -1,0 +1,186 @@
+name: Apex Python Program I/O Autograder
+on: [push, pull_request, workflow_dispatch]
+
+env: 
+    PROGRAM_FILE: group_maker.py
+
+permissions:
+  contents: read
+  actions: read
+
+jobs: 
+    test:
+        name: "Test ${{ matrix.number }}: ${{ matrix.label }}"
+        runs-on: ubuntu-latest
+        timeout-minutes: 1
+    
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - number: 1
+                      label: 20 people groups of 4
+                      inputs: [20, 4]
+                      expected: With 20 people, you can make 5 groups of 4 with 0 people leftover.
+
+                    - number: 2
+                      label: 20 people groups of 5
+                      inputs: [20, 5]
+                      expected: With 20 people, you can make 4 groups of 5 with 0 people leftover.
+
+                    - number: 3
+                      label: 23 people groups of 5
+                      inputs: [23, 5]
+                      expected: With 23 people, you can make 4 groups of 5 with 3 people leftover.
+
+                    - number: 4
+                      label: 11 people groups of 2
+                      inputs: [11, 2]
+                      expected: With 11 people, you can make 5 groups of 2 with 1 person leftover.
+
+                    - number: 5
+                      label: 7 people groups of 5
+                      inputs: [7, 5]
+                      expected: With 7 people, you can make 1 group of 5 with 2 people leftover.
+
+                    - number: 6
+                      label: 5 people groups of 4
+                      inputs: [5, 4]
+                      expected: With 5 people, you can make 1 group of 4 with 1 person leftover.
+
+                    - number: 7
+                      label: 30 people groups of 1
+                      inputs: [30, 1]
+                      expected: With 30 people, you can make 30 groups of 1 with 0 people leftover.
+
+                    - number: 8
+                      label: Negative number of people
+                      inputs: [-5, 2]
+                      expected: "ERROR: The number of people must be 1 or more."
+
+                    - number: 9
+                      label: 0 group size
+                      inputs: [10, 0]
+                      expected: "ERROR: The group size must be 1 or more."
+
+                    - number: 10
+                      label: Invalid number of people and group size
+                      inputs: [-5, -2]
+                      expected: "ERROR: The number of people must be 1 or more."
+
+        steps:
+            - uses: actions/checkout@v6
+
+            - name: Run test
+              shell: bash
+              env:
+                TEST_NUMBER: "${{ matrix.number }}"
+                TEST_LABEL: "${{ matrix.label }}"
+                TEST_INPUTS: "${{ toJSON(matrix.inputs) }}"
+                EXPECTED_OUTPUT: "${{ matrix.expected }}"
+            
+              # script to run program with name and capture output
+              run: |
+                python3 - <<'PY'
+                import json
+                import os
+                import subprocess
+                import sys
+
+                def run_program(program_file, inputs):
+                    user_input = "\n".join(str(value) for value in inputs) + "\n"
+                    return subprocess.run(
+                        [sys.executable, program_file],
+                        input=user_input,
+                        text=True,
+                        capture_output=True,
+                        timeout=5,
+                    )
+
+                def print_report(number, label, inputs, expected, actual, passed):
+                    shown_inputs = ", ".join(str(value) for value in inputs)
+                    result_text = "✅ PASS" if passed else "❌ FAIL"
+                    horiz_line: str = "-" * 50
+                    print(horiz_line)
+                    print(f"Test {number}: {label}")
+                    print(result_text)
+                    print(f"Inputs: [{shown_inputs}]")
+                    print(f"Expected: {expected}")
+                    print(f"  Actual: {actual}")
+                    print(horiz_line)
+
+                def main():
+                    # retrieve environment variables
+                    number = os.environ["TEST_NUMBER"]
+                    label = os.environ["TEST_LABEL"]
+                    inputs = json.loads(os.environ["TEST_INPUTS"])
+                    program_file = os.environ["PROGRAM_FILE"]
+                    expected = os.environ["EXPECTED_OUTPUT"]
+
+                    try:
+                        result = run_program(program_file, inputs)
+
+                    except FileNotFoundError:
+                        actual = f"{program_file} was not found"
+                        print_report(
+                            number, label, inputs, expected, actual, False
+                        )
+                        return 1
+
+                    except subprocess.TimeoutExpired:
+                        actual = "Program did not finish within 5 seconds"
+                        print_report(
+                            number, label, inputs, expected, actual, False
+                        )
+                        return 1
+
+                    output = result.stdout.replace("\r\n", "\n").removesuffix("\n")
+                    output_matches = output.endswith(expected)
+                    passed = result.returncode == 0 and output_matches
+                    actual = expected if output_matches else output
+
+                    print_report(
+                        number, label, inputs, expected, actual, passed
+                    )
+
+                    if not passed and result.stderr:
+                        print(f"Error output: {result.stderr!r}")
+
+                    return 0 if passed else 1
+
+                if __name__ == "__main__":
+                    sys.exit(main())
+                PY
+    summary:
+        name: Test Summary
+        needs: test
+        if: always()
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Summarize Test Runs 
+              uses: actions/github-script@v8
+              with:
+                script: |
+                    const jobs = await github.paginate(
+                        github.rest.actions.listJobsForWorkflowRun,
+                        {
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            run_id: context.runId,
+                            per_page: 100,
+                        }
+                    );
+
+                    const tests = jobs.filter(
+                        job => /^Test \d+:/.test(job.name)
+                    );
+                    const passed = tests.filter(
+                    job => job.conclusion === "success"
+                    ).length;
+                    const failed = tests.length - passed;
+                    const result =
+                        `${passed}/${tests.length} tests passed; ${failed} failed.`;
+
+                    core.notice(result, { title: "Autograding result" });
